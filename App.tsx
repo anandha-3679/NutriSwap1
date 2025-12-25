@@ -1,107 +1,170 @@
 
-import React, { useState } from 'react';
-import SearchForm from './components/SearchForm';
-import SwapCard from './components/SwapCard';
-import { HealthGoal, SwapResult, UserCategory } from './types';
-import { fetchAiSwap } from './services/geminiService';
+import React, { useState, useEffect } from 'react';
+import Dashboard from './components/Dashboard';
+import Lab from './components/Lab';
+import Pantry from './components/Pantry';
+import ProfileSettings from './components/ProfileSettings';
+import Community from './components/Community';
+import CameraScanner from './components/CameraScanner';
+import { UserProfile, UserCategory, HealthGoal, SwapResult } from './types';
+import { fetchAgenticSwap } from './services/geminiService';
 
-enum AppView {
-  FORM,
-  RESULT
-}
+type View = 'DASHBOARD' | 'LAB' | 'PANTRY' | 'PROFILE' | 'COMMUNITY' | 'SCAN';
 
 const App: React.FC = () => {
-  const [view, setView] = useState<AppView>(AppView.FORM);
-  const [result, setResult] = useState<SwapResult | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [view, setView] = useState<View>('DASHBOARD');
+  const [isScanning, setIsScanning] = useState(false);
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    const saved = localStorage.getItem('nutriswap_profile');
+    return saved ? JSON.parse(saved) : {
+      name: 'Guest Explorer',
+      category: UserCategory.ADULT,
+      goals: [HealthGoal.HIGHER_PROTEIN],
+      allergies: [],
+      points: 1250,
+      level: 2,
+      streak: 5
+    };
+  });
 
-  const handleSearch = async (food: string, goals: HealthGoal[], category: UserCategory) => {
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      // Dynamic swaps for a personalized experience
-      const aiResult = await fetchAiSwap(food, goals, category);
-      setResult(aiResult);
-      setView(AppView.RESULT);
-    } catch (err) {
-      console.error(err);
-      setError("We had trouble finding a personalized swap. Please try a different food name.");
-    } finally {
-      setIsLoading(false);
+  const [savedSwaps, setSavedSwaps] = useState<SwapResult[]>(() => {
+    const saved = localStorage.getItem('nutriswap_saved_swaps');
+    return saved ? JSON.parse(saved) : [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('nutriswap_profile', JSON.stringify(profile));
+  }, [profile]);
+
+  useEffect(() => {
+    localStorage.setItem('nutriswap_saved_swaps', JSON.stringify(savedSwaps));
+  }, [savedSwaps]);
+
+  const handleSaveSwap = (swap: SwapResult) => {
+    if (!savedSwaps.find(s => s.id === swap.id)) {
+      setSavedSwaps([swap, ...savedSwaps]);
+      addXP(100);
+      alert(`${swap.suggestedSwap} added to your Pantry! +100 XP`);
     }
   };
 
-  const handleReset = () => {
-    setView(AppView.FORM);
-    setResult(null);
-    setError(null);
+  const handleRemoveSwap = (id: string) => {
+    setSavedSwaps(savedSwaps.filter(s => s.id !== id));
   };
 
+  const addXP = (amount: number) => {
+    setProfile(prev => {
+      let newPoints = prev.points + amount;
+      let newLevel = prev.level;
+      const nextLevelThreshold = newLevel * 1000;
+      
+      if (newPoints >= nextLevelThreshold) {
+        newPoints -= nextLevelThreshold;
+        newLevel += 1;
+        alert(`🎉 CONGRATS! You reached Level ${newLevel}!`);
+      }
+      
+      return { ...prev, points: newPoints, level: newLevel };
+    });
+  };
+
+  const handleVisionCapture = async (base64: string) => {
+    setIsScanning(true);
+    try {
+      const result = await fetchAgenticSwap("Identify the food in this photo and suggest the best healthy swap for my profile.", profile, base64);
+      setSavedSwaps([result, ...savedSwaps]);
+      addXP(250); // Vision bonus
+      setView('PANTRY');
+      alert(`AI identified your food and found a perfect swap: ${result.suggestedSwap}. Saved to Pantry!`);
+    } catch (err) {
+      console.error(err);
+      alert("AI Vision was unable to identify this food clearly. Try a better angle!");
+    } finally {
+      setIsScanning(false);
+      setView('DASHBOARD');
+    }
+  };
+
+  const navItems = [
+    { id: 'DASHBOARD', label: 'Home', icon: '🏠' },
+    { id: 'LAB', label: 'The Lab', icon: '🧪' },
+    { id: 'COMMUNITY', label: 'Social', icon: '🌐' },
+    { id: 'PANTRY', label: 'Pantry', icon: '🥫' },
+    { id: 'PROFILE', label: 'Me', icon: '👤' },
+  ];
+
   return (
-    <div className="min-h-screen bg-[#f8fafc] text-slate-900 pb-20">
-      {/* Dynamic Header */}
-      <header className={`pt-12 pb-8 px-6 text-center transition-all duration-500 ${view === AppView.RESULT ? 'scale-90 opacity-80' : ''}`}>
-        <div className="inline-flex items-center justify-center p-4 bg-emerald-100 rounded-[1.5rem] mb-6 shadow-sm shadow-emerald-200/50">
-          <svg className="w-12 h-12 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M21 15.546c-.523 0-1.046.151-1.5.454a2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.704 2.704 0 00-3 0 2.704 2.704 0 01-3 0 2.701 2.701 0 00-1.5-.454M9 6v2m3-2v2m3-2v2M9 3h.01M12 3h.01M15 3h.01M21 21v-7a2 2 0 00-2-2H5a2 2 0 00-2 2v7h18z" />
-          </svg>
+    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 pb-28">
+      {/* Dynamic Background Elements */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-cyan-100/40 rounded-full blur-[100px]"></div>
+      </div>
+
+      <header className="relative z-10 pt-10 pb-6 px-6 max-w-7xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter">NutriSwap<span className="text-emerald-500">Pro</span></h1>
         </div>
-        <h1 className="text-6xl font-black text-emerald-950 mb-4 tracking-tighter">
-          Nutri<span className="text-emerald-500">Swap</span><span className="text-emerald-300">Pro</span>
-        </h1>
-        <p className="text-xl text-slate-500 max-w-xl mx-auto font-medium leading-relaxed">
-          {view === AppView.FORM 
-            ? "Tailored nutrition swaps for every stage of life." 
-            : "Here is your personalized upgrade and recipe."}
-        </p>
+        <div className="hidden md:flex gap-4">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id as View)}
+              className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                view === item.id ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-100'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+          <button 
+            onClick={() => setView('SCAN')}
+            className="px-6 py-2 bg-emerald-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-105 transition-all"
+          >
+            📸 Scan Food
+          </button>
+        </div>
       </header>
 
-      <main className="px-6">
-        {error && (
-          <div className="max-w-2xl mx-auto mb-8 bg-red-50 border-2 border-red-100 text-red-600 px-6 py-4 rounded-3xl text-center font-bold animate-bounce">
-            ⚠️ {error}
-          </div>
-        )}
-
-        {view === AppView.FORM ? (
-          <div className="space-y-12">
-            <section className="animate-in fade-in slide-in-from-bottom-8 duration-500">
-              <SearchForm onSearch={handleSearch} isLoading={isLoading} />
-            </section>
-
-            <section className="max-w-2xl mx-auto text-center">
-              <p className="text-slate-400 text-sm font-black uppercase tracking-[0.3em] mb-6">Popular Swaps</p>
-              <div className="flex flex-wrap justify-center gap-3 opacity-60 hover:opacity-100 transition-opacity">
-                {['Mac & Cheese', 'Sweet Soda', 'Fries', 'Candy Bar'].map(item => (
-                  <button
-                    key={item}
-                    onClick={() => handleSearch(item, [HealthGoal.LOWER_CALORIE], UserCategory.ADULT)}
-                    className="px-4 py-2 bg-white border border-slate-200 rounded-2xl text-slate-500 hover:text-emerald-600 hover:border-emerald-500 transition-all font-bold text-xs"
-                  >
-                    {item}
-                  </button>
-                ))}
-              </div>
-            </section>
-          </div>
-        ) : (
-          <section className="animate-in fade-in slide-in-from-bottom-8 duration-700">
-            {result && <SwapCard result={result} onReset={handleReset} />}
-          </section>
-        )}
+      <main className="relative z-10 px-6 max-w-7xl mx-auto py-10">
+        {view === 'DASHBOARD' && <Dashboard profile={profile} savedSwaps={savedSwaps} onNavigate={setView} />}
+        {view === 'LAB' && <Lab profile={profile} onSaveSwap={handleSaveSwap} />}
+        {view === 'PANTRY' && <Pantry swaps={savedSwaps} onRemove={handleRemoveSwap} />}
+        {view === 'PROFILE' && <ProfileSettings profile={profile} onUpdate={setProfile} />}
+        {view === 'COMMUNITY' && <Community profile={profile} onJoinChallenge={(id) => alert(`Joined challenge ${id}! Go earn that XP!`)} />}
+        {view === 'SCAN' && <CameraScanner onCapture={handleVisionCapture} onClose={() => setView('DASHBOARD')} isLoading={isScanning} />}
       </main>
 
-      <footer className="mt-20 py-10 text-center">
-         <div className="flex justify-center gap-6 mb-4 opacity-20">
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
-            <span className="w-1.5 h-1.5 bg-slate-400 rounded-full"></span>
-         </div>
-         <p className="text-slate-300 text-[10px] font-black uppercase tracking-widest">
-           Empowering Healthy Choices &copy; {new Date().getFullYear()} NutriSwap
-         </p>
+      {/* Mobile Bottom Navigation */}
+      <nav className="fixed bottom-6 left-6 right-6 md:hidden z-50">
+        <div className="bg-slate-900/90 backdrop-blur-xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl flex justify-around items-center">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id as View)}
+              className={`flex flex-col items-center gap-1 w-16 py-2 transition-all rounded-2xl ${
+                view === item.id ? 'bg-emerald-500 text-white shadow-lg' : 'text-slate-500'
+              }`}
+            >
+              <span className="text-xl">{item.icon}</span>
+              <span className="text-[8px] font-black uppercase tracking-tighter">{item.label}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setView('SCAN')}
+            className="flex flex-col items-center gap-1 w-16 py-2 text-emerald-400"
+          >
+            <span className="text-xl">📸</span>
+            <span className="text-[8px] font-black uppercase tracking-tighter">Scan</span>
+          </button>
+        </div>
+      </nav>
+
+      <footer className="relative z-10 mt-20 pb-10 text-center opacity-30">
+        <p className="text-[10px] font-black uppercase tracking-[0.4em]">Agentic Intelligence v2.0 • NutriSwap</p>
       </footer>
     </div>
   );
