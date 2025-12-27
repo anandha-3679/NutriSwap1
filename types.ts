@@ -95,3 +95,11 @@ export interface DictionaryItem {
     explanation: string;
   }>>;
 }
+
+export type ToastType = 'success' | 'error' | 'info' | 'xp';
+
+export interface ToastMessage {
+  id: string;
+  message: string;
+  type: ToastType;
+}

@@ -2,7 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { HealthGoal, SwapResult, UserCategory, UserProfile } from "../types";
 
-const MODEL_NAME = "gemini-3-flash-preview";
+const MODEL_NAME = "gemini-3-pro-preview";
 
 export const fetchAgenticSwap = async (
   prompt: string,
@@ -29,7 +29,7 @@ export const fetchAgenticSwap = async (
     model: MODEL_NAME,
     contents: { parts: contents.map(c => typeof c === 'string' ? { text: c } : c) },
     config: {
-      thinkingConfig: { thinkingBudget: 2000 },
+      thinkingConfig: { thinkingBudget: 4000 },
       responseMimeType: "application/json",
       responseSchema: {
         type: Type.OBJECT,
@@ -90,13 +90,13 @@ export const fetchAgenticSwap = async (
         },
         required: ["originalFood", "suggestedSwap", "explanation", "reasoning", "macros", "recipe"]
       },
-      systemInstruction: `You are NutriSwap Agentic AI. 
+      systemInstruction: `You are NutriSwap Agentic AI (Pro Edition). 
       CONTEXT: ${categoryCtx} ${goalCtx} ${allergyCtx}
-      YOUR ROLE: Find the best food alternative based on the user's request. 
+      YOUR ROLE: Analyze nutrition logic to find the single best alternative. 
       IF AN IMAGE IS PROVIDED: Identify the food in the image first.
-      REASONING: Explain your logic step-by-step in the 'reasoning' field. 
-      MACROS: Provide realistic estimated macronutrients.
-      CONSTRAINTS: Never suggest foods containing their allergies.`
+      REASONING: Explain your logic step-by-step in the 'reasoning' field. Consider density, fiber, and micronutrients.
+      MACROS: Provide realistic estimated macronutrients for standard single portions.
+      CONSTRAINTS: Never suggest foods containing their allergies. Be creative but scientifically sound.`
     }
   });
 
