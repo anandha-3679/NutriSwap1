@@ -2,6 +2,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { HealthGoal, SwapResult, UserCategory, UserProfile } from "../types";
 
+// Use gemini-3-pro-preview for complex reasoning tasks
 const MODEL_NAME = "gemini-3-pro-preview";
 
 export const fetchAgenticSwap = async (
@@ -9,15 +10,16 @@ export const fetchAgenticSwap = async (
   profile: UserProfile,
   imageData?: string // Base64 image data
 ): Promise<SwapResult> => {
+  // Initialize AI client with API key from environment variable process.env.API_KEY
   const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
   
   const allergyCtx = profile.allergies.length > 0 ? `STRICTLY AVOID: ${profile.allergies.join(", ")}.` : "";
   const goalCtx = `User Goals: ${profile.goals.join(", ")}.`;
   const categoryCtx = `User is a ${profile.category}.`;
 
-  const contents: any[] = [{ text: prompt }];
+  const parts: any[] = [{ text: prompt }];
   if (imageData) {
-    contents.push({
+    parts.push({
       inlineData: {
         mimeType: "image/jpeg",
         data: imageData.split(',')[1] || imageData
@@ -25,9 +27,10 @@ export const fetchAgenticSwap = async (
     });
   }
 
+  // Generate content using the Gemini model with thinking configuration and a strictly defined JSON schema
   const response = await ai.models.generateContent({
     model: MODEL_NAME,
-    contents: { parts: contents.map(c => typeof c === 'string' ? { text: c } : c) },
+    contents: { parts },
     config: {
       thinkingConfig: { thinkingBudget: 4000 },
       responseMimeType: "application/json",
@@ -101,7 +104,8 @@ export const fetchAgenticSwap = async (
   });
 
   try {
-    const data = JSON.parse(response.text);
+    // response.text is a property, not a method. Access it directly.
+    const data = JSON.parse(response.text || '{}');
     return {
       ...data,
       id: crypto.randomUUID(),

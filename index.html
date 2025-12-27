@@ -4,48 +4,67 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NutriSwap Pro - Agentic Nutrition Assistant</title>
+    <title>REPS - Elite Fitness Ecosystem</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&family=Outfit:wght@400;500;600;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
+        :root {
+            --bg-primary: #FFFFFF;
+            --text-primary: #1E293B;
+            --text-secondary: #64748B;
+            --accent-sage: #86EFAC;
+            --accent-sage-dark: #22C55E;
+            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.02);
+            --bento-radius: 1rem;
+        }
+
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #fcfcfc;
-            color: #0f172a;
-        }
-        h1, h2, h3, h4, .font-heading {
-            font-family: 'Outfit', sans-serif;
+            background-color: var(--bg-primary);
+            color: var(--text-primary);
+            -webkit-font-smoothing: antialiased;
         }
 
-        .glass-container {
-            background: rgba(255, 255, 255, 0.6);
+        .bento-card {
+            background: white;
+            border-radius: var(--bento-radius);
+            box-shadow: var(--card-shadow);
+            border: 1px solid rgba(0, 0, 0, 0.03);
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .bento-card:active {
+            transform: scale(0.98);
+        }
+
+        .nav-blur {
+            background: rgba(255, 255, 255, 0.8);
             backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.4);
-            border-radius: 2.5rem;
-            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.05);
+            -webkit-backdrop-filter: blur(12px);
         }
 
-        .custom-scrollbar::-webkit-scrollbar {
-            width: 6px;
+        /* Custom scrollbar for minimalist look */
+        ::-webkit-scrollbar {
+            width: 4px;
         }
-        .custom-scrollbar::-webkit-scrollbar-track {
+        ::-webkit-scrollbar-track {
             background: transparent;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb {
-            background: rgba(16, 185, 129, 0.1);
+        ::-webkit-scrollbar-thumb {
+            background: #E2E8F0;
             border-radius: 10px;
         }
-        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-            background: rgba(16, 185, 129, 0.2);
+
+        @keyframes slideInUp {
+            from { transform: translateY(20px); opacity: 0; }
+            to { transform: translateY(0); opacity: 1; }
+        }
+        .animate-slide-up {
+            animation: slideInUp 0.4s ease-out forwards;
         }
 
-        @keyframes float {
-            0% { transform: translateY(0px); }
-            50% { transform: translateY(-10px); }
-            100% { transform: translateY(0px); }
-        }
-        .animate-float {
-            animation: float 3s ease-in-out infinite;
+        .sage-gradient {
+            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
         }
     </style>
 <script type="importmap">
