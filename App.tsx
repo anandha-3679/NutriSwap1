@@ -7,6 +7,7 @@ import ProfileSettings from './components/ProfileSettings';
 import Community from './components/Community';
 import CameraScanner from './components/CameraScanner';
 import Toast from './components/Toast';
+import AuthModal from './components/AuthModal';
 import { UserProfile, UserCategory, HealthGoal, SwapResult, ToastMessage, ToastType } from './types';
 import { fetchAgenticSwap } from './services/geminiService';
 
@@ -15,6 +16,7 @@ type View = 'DASHBOARD' | 'LAB' | 'PANTRY' | 'PROFILE' | 'COMMUNITY' | 'SCAN';
 const App: React.FC = () => {
   const [view, setView] = useState<View>('DASHBOARD');
   const [isScanning, setIsScanning] = useState(false);
+  const [showAuthModal, setShowAuthModal] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   
   const [profile, setProfile] = useState<UserProfile>(() => {
@@ -27,7 +29,9 @@ const App: React.FC = () => {
         allergies: [],
         points: 0,
         level: 1,
-        streak: 1
+        streak: 1,
+        avatarUrl: '🥦',
+        isAuthenticated: false
       };
     } catch {
       return {
@@ -37,7 +41,9 @@ const App: React.FC = () => {
         allergies: [],
         points: 0,
         level: 1,
-        streak: 1
+        streak: 1,
+        avatarUrl: '🥦',
+        isAuthenticated: false
       };
     }
   });
@@ -102,12 +108,24 @@ const App: React.FC = () => {
     });
   }, [notify]);
 
+  const handleAuthComplete = (authData: Partial<UserProfile>) => {
+    setProfile(prev => ({ ...prev, ...authData }));
+    
+    // Auto-backup current swaps to this new account key
+    if (authData.email) {
+      const cloudStorageKey = `nutriswap_cloud_${authData.email}`;
+      const backup = { profile: { ...profile, ...authData }, swaps: savedSwaps };
+      localStorage.setItem(cloudStorageKey, JSON.stringify(backup));
+    }
+    setShowAuthModal(false);
+  };
+
   const handleVisionCapture = async (base64: string) => {
     setIsScanning(true);
     try {
       const result = await fetchAgenticSwap("Identify the food in this photo and suggest the best healthy swap for my profile.", profile, base64);
       setSavedSwaps(prev => [result, ...prev]);
-      addXP(250); // Vision bonus
+      addXP(250); 
       setView('PANTRY');
       notify(`AI identified: ${result.originalFood}. Suggested: ${result.suggestedSwap}`, 'success');
     } catch (err) {
@@ -121,7 +139,14 @@ const App: React.FC = () => {
 
   const updateProfile = (newProfile: UserProfile) => {
     setProfile(newProfile);
-    notify('User Identity Synchronized!', 'success');
+    notify('Profile Updated & Secured!', 'success');
+    
+    // Update cloud if email exists
+    if (newProfile.email) {
+      const cloudStorageKey = `nutriswap_cloud_${newProfile.email}`;
+      const backup = { profile: newProfile, swaps: savedSwaps };
+      localStorage.setItem(cloudStorageKey, JSON.stringify(backup));
+    }
   };
 
   const navItems = [
@@ -143,6 +168,14 @@ const App: React.FC = () => {
         ))}
       </div>
 
+      {showAuthModal && (
+        <AuthModal 
+          onClose={() => setShowAuthModal(false)} 
+          onAuthComplete={handleAuthComplete} 
+          onNotify={notify} 
+        />
+      )}
+
       <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
         <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px]"></div>
         <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-cyan-100/40 rounded-full blur-[100px]"></div>
@@ -155,7 +188,7 @@ const App: React.FC = () => {
           </div>
           <h1 className="text-3xl font-black tracking-tighter">NutriSwap<span className="text-emerald-500">Pro</span></h1>
         </div>
-        <div className="hidden md:flex gap-4">
+        <div className="hidden md:flex gap-4 items-center">
           {navItems.map(item => (
             <button
               key={item.id}
@@ -173,6 +206,14 @@ const App: React.FC = () => {
           >
             📸 Scan Food
           </button>
+          {!profile.isAuthenticated && (
+            <button 
+              onClick={() => setShowAuthModal(true)}
+              className="px-6 py-2 border-2 border-slate-900 text-slate-900 rounded-full text-xs font-black uppercase tracking-widest hover:bg-slate-900 hover:text-white transition-all ml-4"
+            >
+              Sign In
+            </button>
+          )}
         </div>
       </header>
 
@@ -180,7 +221,7 @@ const App: React.FC = () => {
         {view === 'DASHBOARD' && <Dashboard profile={profile} savedSwaps={savedSwaps} onNavigate={setView} />}
         {view === 'LAB' && <Lab profile={profile} onSaveSwap={handleSaveSwap} />}
         {view === 'PANTRY' && <Pantry swaps={savedSwaps} onRemove={handleRemoveSwap} />}
-        {view === 'PROFILE' && <ProfileSettings profile={profile} onUpdate={updateProfile} />}
+        {view === 'PROFILE' && <ProfileSettings profile={profile} onUpdate={updateProfile} onSync={async () => setShowAuthModal(true)} onOpenAuth={() => setShowAuthModal(true)} />}
         {view === 'COMMUNITY' && <Community profile={profile} onJoinChallenge={(id) => notify(`Joined challenge ${id}! Go earn that XP!`, 'info')} onAddXP={addXP} onNotify={notify} />}
         {view === 'SCAN' && <CameraScanner onCapture={handleVisionCapture} onClose={() => setView('DASHBOARD')} isLoading={isScanning} />}
       </main>
@@ -210,7 +251,7 @@ const App: React.FC = () => {
       </nav>
 
       <footer className="relative z-10 mt-20 pb-10 text-center opacity-30">
-        <p className="text-[10px] font-black uppercase tracking-[0.4em]">Agentic Intelligence v2.1 • Pro Edition • Data Synced</p>
+        <p className="text-[10px] font-black uppercase tracking-[0.4em]">Agentic Intelligence v2.5 • Auth Secured • Multi-Cloud Synced</p>
       </footer>
     </div>
   );

@@ -48,6 +48,10 @@ export interface SwapResult {
 
 export interface UserProfile {
   name: string;
+  email?: string;
+  password?: string;
+  phoneNumber?: string;
+  avatarUrl?: string;
   category: UserCategory;
   goals: HealthGoal[];
   allergies: string[];
@@ -56,6 +60,8 @@ export interface UserProfile {
   level: number;
   streak: number;
   lastCheckIn?: string;
+  isAuthenticated: boolean;
+  provider?: 'email' | 'google' | 'facebook' | 'phone';
 }
 
 export interface ChatMessage {
