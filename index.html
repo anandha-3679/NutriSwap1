@@ -10,12 +10,10 @@
     <style>
         :root {
             --bg-primary: #FFFFFF;
-            --text-primary: #1E293B;
-            --text-secondary: #64748B;
-            --accent-sage: #86EFAC;
-            --accent-sage-dark: #22C55E;
-            --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.04), 0 2px 8px -2px rgba(0, 0, 0, 0.02);
-            --bento-radius: 1rem;
+            --text-primary: #000000;
+            --accent-orange: #FF4D00;
+            --border-subtle: #F1F5F9;
+            --card-shadow: 0 4px 30px rgba(0, 0, 0, 0.03);
         }
 
         body {
@@ -23,18 +21,35 @@
             background-color: var(--bg-primary);
             color: var(--text-primary);
             -webkit-font-smoothing: antialiased;
+            overflow-x: hidden;
         }
 
         .bento-card {
             background: white;
-            border-radius: var(--bento-radius);
+            border-radius: 1rem;
             box-shadow: var(--card-shadow);
-            border: 1px solid rgba(0, 0, 0, 0.03);
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border: 1px solid var(--border-subtle);
+            transition: all 0.2s ease;
         }
 
         .bento-card:active {
             transform: scale(0.98);
+        }
+
+        .accent-btn {
+            background: #000;
+            color: #fff;
+            font-weight: 800;
+            border-radius: 0.75rem;
+            transition: all 0.2s ease;
+        }
+
+        .accent-btn:hover {
+            opacity: 0.9;
+        }
+
+        .accent-btn:active {
+            transform: translateY(1px);
         }
 
         .nav-blur {
@@ -43,28 +58,21 @@
             -webkit-backdrop-filter: blur(12px);
         }
 
-        /* Custom scrollbar for minimalist look */
-        ::-webkit-scrollbar {
-            width: 4px;
-        }
-        ::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        ::-webkit-scrollbar-thumb {
-            background: #E2E8F0;
-            border-radius: 10px;
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
         }
 
-        @keyframes slideInUp {
-            from { transform: translateY(20px); opacity: 0; }
-            to { transform: translateY(0); opacity: 1; }
+        @keyframes float {
+            0% { transform: translateY(0px); }
+            50% { transform: translateY(-5px); }
+            100% { transform: translateY(0px); }
         }
-        .animate-slide-up {
-            animation: slideInUp 0.4s ease-out forwards;
+        .animate-float {
+            animation: float 3s ease-in-out infinite;
         }
 
-        .sage-gradient {
-            background: linear-gradient(135deg, #F0FDF4 0%, #DCFCE7 100%);
+        .orange-glow {
+            box-shadow: 0 0 20px rgba(255, 77, 0, 0.2);
         }
     </style>
 <script type="importmap">

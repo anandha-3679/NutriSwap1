@@ -10,10 +10,11 @@ interface CommunityProps {
 }
 
 const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP, onNotify }) => {
+  // Use username consistently with types.ts SocialPost interface
   const [posts, setPosts] = useState<SocialPost[]>([
     {
       id: '1',
-      userName: 'Sarah Healthy',
+      username: 'Sarah Healthy',
       userLevel: 12,
       content: 'I replaced my afternoon potato chips with air-popped popcorn and nutritional yeast. 10/10 crunch!',
       swap: { from: 'Potato Chips', to: 'Popcorn' },
@@ -22,7 +23,7 @@ const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP
     },
     {
       id: '2',
-      userName: 'Mike Gaines',
+      username: 'Mike Gaines',
       userLevel: 8,
       content: 'Finally tried Greek Yogurt in my tacos instead of sour cream. Can barely tell the difference but the protein boost is real!',
       swap: { from: 'Sour Cream', to: 'Greek Yogurt' },
@@ -31,7 +32,7 @@ const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP
     },
     {
       id: '3',
-      userName: 'NutritionExpert',
+      username: 'NutritionExpert',
       userLevel: 45,
       content: 'Pro tip for the community: If you are craving sweets, try frozen grapes. Nature\'s candy!',
       likes: 142,
@@ -39,18 +40,20 @@ const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP
     }
   ]);
 
+  // Added mandatory Challenge fields for type safety
   const [challenges, setChallenges] = useState<Challenge[]>([
-    { id: 'c1', title: '7-Day No Soda', description: 'Replace all sugary carbonated drinks with sparkling water.', reward: 500, daysTotal: 7, daysCompleted: 3, isActive: true },
-    { id: 'c2', title: 'High Protein Week', description: 'Log at least 3 high-protein swaps this week.', reward: 800, daysTotal: 7, daysCompleted: 0, isActive: false },
-    { id: 'c3', title: 'Budget Master', description: 'Find 5 swaps that cost less than the original food.', reward: 400, daysTotal: 5, daysCompleted: 0, isActive: false }
+    { id: 'c1', title: '7-Day No Soda', description: 'Replace all sugary carbonated drinks with sparkling water.', reward: 500, daysTotal: 7, daysCompleted: 3, isActive: true, xp: 500, participants: 120, emoji: '🥤', checkedIn: false },
+    { id: 'c2', title: 'High Protein Week', description: 'Log at least 3 high-protein swaps this week.', reward: 800, daysTotal: 7, daysCompleted: 0, isActive: false, xp: 800, participants: 45, emoji: '🥩', checkedIn: false },
+    { id: 'c3', title: 'Budget Master', description: 'Find 5 swaps that cost less than the original food.', reward: 400, daysTotal: 5, daysCompleted: 0, isActive: false, xp: 400, participants: 89, emoji: '💰', checkedIn: false }
   ]);
 
   const [newPostContent, setNewPostContent] = useState('');
   const [isPosting, setIsPosting] = useState(false);
 
+  // Safely increment likes even if undefined initially
   const handleLike = (postId: string) => {
     setPosts(prev => prev.map(post => 
-      post.id === postId ? { ...post, likes: post.likes + 1 } : post
+      post.id === postId ? { ...post, likes: (post.likes ?? 0) + 1 } : post
     ));
     onAddXP(5);
   };
@@ -61,9 +64,10 @@ const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP
     
     setIsPosting(true);
     setTimeout(() => {
+      // Use profile.name as username for new posts created in Community
       const newPost: SocialPost = {
         id: Math.random().toString(),
-        userName: profile.name,
+        username: profile.name,
         userLevel: profile.level,
         content: newPostContent,
         likes: 0,
@@ -138,11 +142,11 @@ const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP
             <div key={post.id} className="group bg-white rounded-[2.5rem] p-8 shadow-md border border-slate-100 space-y-5 hover:shadow-2xl transition-all duration-500 relative overflow-hidden">
               <div className="flex items-center gap-4">
                 <div className="w-14 h-14 bg-gradient-to-br from-emerald-400 to-teal-500 rounded-2xl flex items-center justify-center text-white font-black text-xl shadow-lg">
-                  {post.userName.charAt(0)}
+                  {post.username.charAt(0)}
                 </div>
                 <div>
                   <h4 className="font-black text-slate-900 flex items-center gap-3 text-lg">
-                    {post.userName}
+                    {post.username}
                     <span className="text-[10px] bg-slate-900 text-white px-3 py-1 rounded-full uppercase tracking-tighter">LVL {post.userLevel}</span>
                   </h4>
                   <p className="text-xs text-slate-400 font-bold uppercase tracking-wider">{post.timestamp}</p>
@@ -167,9 +171,9 @@ const Community: React.FC<CommunityProps> = ({ profile, onJoinChallenge, onAddXP
                   className="flex items-center gap-2.5 text-slate-400 hover:text-rose-500 transition-all group/like"
                 >
                   <div className="p-2 rounded-full group-hover/like:bg-rose-50 transition-colors">
-                    <svg className={`w-6 h-6 transition-transform ${post.likes > 0 ? 'fill-rose-500 text-rose-500 scale-110' : 'fill-none'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
+                    <svg className={`w-6 h-6 transition-transform ${(post.likes ?? 0) > 0 ? 'fill-rose-500 text-rose-500 scale-110' : 'fill-none'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg>
                   </div>
-                  <span className="text-sm font-black">{post.likes} Likes</span>
+                  <span className="text-sm font-black">{post.likes ?? 0} Likes</span>
                 </button>
                 <button className="flex items-center gap-2 text-slate-400 hover:text-emerald-500 transition-colors group/comment">
                   <div className="p-2 rounded-full group-hover/comment:bg-emerald-50 transition-colors">

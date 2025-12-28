@@ -1,8 +1,9 @@
 
 export enum HealthGoal {
-  MUSCLE_GROWTH = 'Muscle Growth',
-  WEIGHT_MANAGEMENT = 'Weight Management',
-  GENERAL_FITNESS = 'General Fitness',
+  BULK = 'Main Character Bulk',
+  SHRED = 'Elite Shred',
+  VIBE = 'Casual Health Vibe',
+  /* Support for NutriSwap constant categories */
   LOWER_CARB = 'Lower Carb',
   LOWER_CALORIE = 'Lower Calorie',
   HIGHER_PROTEIN = 'Higher Protein'
@@ -15,39 +16,84 @@ export enum UserCategory {
 }
 
 export enum UserRank {
-  NOVICE = 'Novice',
   ROOKIE = 'Rookie',
   ELITE = 'Elite',
-  LEGEND = 'Legend'
-}
-
-export interface MacroData {
-  calories: number;
-  protein: number;
-  carbs: number;
-  fats: number;
+  LEGEND = 'Legendary Status'
 }
 
 export interface UserProfile {
+  username: string;
   name: string;
   age: number;
-  height: string;
-  weight: string;
-  goal: HealthGoal;
-  goals: HealthGoal[];
-  category: UserCategory;
+  foodPrefs: string;
   allergies: string[];
   points: number;
   aura: number;
   streak: number;
   rank: UserRank;
+  followers: number;
+  following: number;
+  bio: string;
   isAuthenticated: boolean;
   avatarUrl?: string;
+  posts: SocialPost[];
+  /* Added properties for health goals and category profiling */
+  goals: HealthGoal[];
+  category: UserCategory;
   level: number;
   email?: string;
   password?: string;
   phoneNumber?: string;
   provider?: string;
+}
+
+export interface SocialPost {
+  id: string;
+  username: string;
+  content: string;
+  imageUrl?: string;
+  hypeCount?: number;
+  squadCount?: number;
+  timestamp: string;
+  type?: 'LOCK_IN' | 'MEAL' | 'W';
+  /* Community feature extensions */
+  userLevel?: number;
+  swap?: { from: string; to: string };
+  likes?: number;
+}
+
+export interface ChatMessage {
+  id?: string;
+  sender?: string;
+  text?: string;
+  timestamp?: string;
+  /* Agentic Chat extensions */
+  role?: 'user' | 'assistant';
+  content?: string;
+  swapResult?: SwapResult;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  xp: number;
+  participants: number;
+  emoji: string;
+  checkedIn: boolean;
+  /* Community challenge extensions */
+  description?: string;
+  reward: number;
+  daysTotal: number;
+  daysCompleted: number;
+  isActive: boolean;
+}
+
+/* New interfaces for nutrition tracking and AI results */
+export interface MacroData {
+  calories: number;
+  protein: number;
+  carbs: number;
+  fats: number;
 }
 
 export interface SwapResult {
@@ -56,7 +102,7 @@ export interface SwapResult {
   suggestedSwap: string;
   explanation: string;
   reasoning: string;
-  estimatedPrice?: string;
+  estimatedPrice: string;
   macros: {
     original: MacroData;
     swap: MacroData;
@@ -72,56 +118,11 @@ export interface SwapResult {
 
 export interface DictionaryItem {
   food: string;
-  swaps: {
-    [key in HealthGoal]?: {
-      suggested: string;
-      explanation: string;
-    }
-  };
-}
-
-export interface SocialPost {
-  id: string;
-  userName: string;
-  userLevel?: number;
-  content: string;
-  imageUrl?: string;
-  hypeCount?: number;
-  squadCount?: number;
-  likes?: number;
-  timestamp: string;
-  type?: 'ACHIEVEMENT' | 'MEAL' | 'THOUGHT';
-  swap?: { from: string; to: string };
-}
-
-export interface SquadComment {
-  id: string;
-  userName: string;
-  text: string;
-  timestamp: string;
-}
-
-export interface Challenge {
-  id: string;
-  title: string;
-  description?: string;
-  duration: string;
-  participants: number;
-  image: string;
-  reward?: number;
-  daysTotal?: number;
-  daysCompleted?: number;
-  isActive?: boolean;
-}
-
-export interface ChatMessage {
-  role: 'user' | 'assistant';
-  content: string;
-  swapResult?: SwapResult;
+  swaps: Partial<Record<HealthGoal, { suggested: string; explanation: string }>>;
 }
 
 export interface ToastMessage {
   id: string;
   message: string;
-  type: 'success' | 'error' | 'info' | 'xp';
+  type: 'success' | 'info' | 'xp' | 'error';
 }
