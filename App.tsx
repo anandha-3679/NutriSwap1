@@ -1,139 +1,220 @@
 
-import React, { useState, useEffect } from 'react';
-import Onboarding from './components/Onboarding';
-import TheFloor from './components/TheFloor';
-import TheHierarchy from './components/TheHierarchy';
-import TheGrind from './components/TheGrind';
-import ProfilePage from './components/ProfilePage';
-import RepBot from './components/RepBot';
-import Messaging from './components/Messaging';
-import { UserProfile, UserRank, SocialPost, HealthGoal, UserCategory } from './types';
+import React, { useState, useEffect, useCallback } from 'react';
+import Dashboard from './components/Dashboard';
+import Lab from './components/Lab';
+import Pantry from './components/Pantry';
+import ProfileSettings from './components/ProfileSettings';
+import CameraScanner from './components/CameraScanner';
+import Toast from './components/Toast';
+import { UserProfile, UserCategory, HealthGoal, SwapResult, ToastMessage, ToastType } from './types';
+import { fetchAgenticSwap } from './services/geminiService';
 
-type View = 'FLOOR' | 'HIERARCHY' | 'GRIND' | 'PROFILE' | 'CHAT';
+type View = 'DASHBOARD' | 'LAB' | 'PANTRY' | 'PROFILE' | 'SCAN';
 
 const App: React.FC = () => {
-  const [profile, setProfile] = useState<UserProfile | null>(() => {
-    const saved = localStorage.getItem('reps_profile_v3');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [view, setView] = useState<View>('DASHBOARD');
+  const [isScanning, setIsScanning] = useState(false);
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
   
-  const [view, setView] = useState<View>('FLOOR');
-  const [isBotOpen, setIsBotOpen] = useState(false);
-
-  useEffect(() => {
-    if (profile) {
-      localStorage.setItem('reps_profile_v3', JSON.stringify(profile));
+  const [profile, setProfile] = useState<UserProfile>(() => {
+    try {
+      const saved = localStorage.getItem('nutriswap_profile');
+      return saved ? JSON.parse(saved) : {
+        name: 'Guest Explorer',
+        category: UserCategory.ADULT,
+        goals: [HealthGoal.HIGHER_PROTEIN],
+        allergies: [],
+        points: 0,
+        level: 1,
+        streak: 1
+      };
+    } catch {
+      return {
+        name: 'Guest Explorer',
+        category: UserCategory.ADULT,
+        goals: [HealthGoal.HIGHER_PROTEIN],
+        allergies: [],
+        points: 0,
+        level: 1,
+        streak: 1
+      };
     }
+  });
+
+  const [savedSwaps, setSavedSwaps] = useState<SwapResult[]>(() => {
+    try {
+      const saved = localStorage.getItem('nutriswap_saved_swaps');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persistent Storage Synchronization
+  useEffect(() => {
+    localStorage.setItem('nutriswap_profile', JSON.stringify(profile));
   }, [profile]);
 
-  const handleAuth = (data: Partial<UserProfile>) => {
-    const fullProfile: UserProfile = {
-      username: data.username || 'user',
-      name: data.name || 'Athlete',
-      age: data.age || 18,
-      foodPrefs: data.foodPrefs || '',
-      allergies: data.allergies || [],
-      points: 0,
-      aura: 100,
-      streak: 0,
-      rank: UserRank.ROOKIE,
-      followers: 128,
-      following: 84,
-      bio: 'Locking in. No cap. 🦍',
-      isAuthenticated: true,
-      posts: [],
-      goals: [HealthGoal.BULK],
-      category: UserCategory.ADULT,
-      level: 1
-    };
-    setProfile(fullProfile);
-    setView('FLOOR');
+  useEffect(() => {
+    localStorage.setItem('nutriswap_saved_swaps', JSON.stringify(savedSwaps));
+  }, [savedSwaps]);
+
+  const notify = useCallback((message: string, type: ToastType = 'info') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts(prev => [...prev, { id, message, type }]);
+  }, []);
+
+  const handleRemoveToast = useCallback((id: string) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const handleSaveSwap = (swap: SwapResult) => {
+    if (!savedSwaps.find(s => s.id === swap.id)) {
+      setSavedSwaps(prev => [swap, ...prev]);
+      addXP(100);
+      notify(`${swap.suggestedSwap} added to your Pantry!`, 'success');
+    } else {
+      notify('This swap is already in your pantry.', 'info');
+    }
   };
 
-  if (!profile) {
-    return <Onboarding onComplete={handleAuth} />;
-  }
+  const handleRemoveSwap = (id: string) => {
+    setSavedSwaps(prev => prev.filter(s => s.id !== id));
+    notify('Removed from pantry.', 'info');
+  };
+
+  const addXP = (amount: number) => {
+    setProfile(prev => {
+      let newPoints = prev.points + amount;
+      let newLevel = prev.level;
+      const nextLevelThreshold = newLevel * 1000;
+      
+      if (newPoints >= nextLevelThreshold) {
+        newPoints -= nextLevelThreshold;
+        newLevel += 1;
+        notify(`🎉 Level Up! You are now Level ${newLevel}!`, 'xp');
+      } else {
+        notify(`+${amount} XP Earned!`, 'xp');
+      }
+      
+      return { ...prev, points: newPoints, level: newLevel };
+    });
+  };
+
+  const handleVisionCapture = async (base64: string) => {
+    setIsScanning(true);
+    try {
+      const result = await fetchAgenticSwap("Identify the food in this photo and suggest the best healthy swap for my profile.", profile, base64);
+      setSavedSwaps(prev => [result, ...prev]);
+      addXP(250); // Vision bonus
+      setView('PANTRY');
+      notify(`AI identified: ${result.originalFood}. Suggested: ${result.suggestedSwap}`, 'success');
+    } catch (err) {
+      console.error(err);
+      notify("AI Vision failed to process the image. Try a clearer photo.", 'error');
+      setView('DASHBOARD');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const updateProfile = (newProfile: UserProfile) => {
+    setProfile(newProfile);
+    notify('User Identity Synchronized!', 'success');
+  };
+
+  const navItems = [
+    { id: 'DASHBOARD', label: 'Home', icon: '🏠' },
+    { id: 'LAB', label: 'The Lab', icon: '🧪' },
+    { id: 'PANTRY', label: 'Pantry', icon: '🥫' },
+    { id: 'PROFILE', label: 'Me', icon: '👤' },
+  ];
 
   return (
-    <div className="min-h-screen bg-white max-w-md mx-auto relative flex flex-col border-x border-slate-50">
-      {/* Premium Header */}
-      <header className="sticky top-0 z-50 bg-white/80 backdrop-blur-xl px-6 py-5 flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <FireBoyIcon size={36} />
-          <h1 className="text-2xl font-black italic tracking-tighter text-black uppercase">REPS</h1>
+    <div className="min-h-screen bg-[#FDFDFD] text-slate-900 pb-28">
+      {/* Toast Notification Center */}
+      <div className="fixed top-6 right-6 z-[200] flex flex-col gap-3 pointer-events-none">
+        {toasts.map(toast => (
+          <div key={toast.id} className="pointer-events-auto">
+            <Toast toast={toast} onRemove={handleRemoveToast} />
+          </div>
+        ))}
+      </div>
+
+      <div className="fixed inset-0 overflow-hidden pointer-events-none z-0">
+        <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-emerald-100/40 rounded-full blur-[100px]"></div>
+        <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-cyan-100/40 rounded-full blur-[100px]"></div>
+      </div>
+
+      <header className="relative z-10 pt-10 pb-6 px-6 max-w-7xl mx-auto flex justify-between items-center">
+        <div className="flex items-center gap-3 group cursor-pointer" onClick={() => setView('DASHBOARD')}>
+          <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-500/30 group-hover:scale-110 transition-transform">
+            <FireBoyIcon size={24} color="white" />
+          </div>
+          <h1 className="text-3xl font-black tracking-tighter">NutriSwap<span className="text-emerald-500">Pro</span></h1>
         </div>
-        
-        <div className="flex items-center gap-2">
-          <div className="flex flex-col items-end">
-             <div className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{profile.rank}</div>
-             <div className="text-sm font-black text-black">+{profile.aura} Aura</div>
-          </div>
-          <div className="w-10 h-10 rounded-full border-2 border-black flex items-center justify-center font-black text-xs">
-            {profile.name[0]}
-          </div>
+        <div className="hidden md:flex gap-4">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id as View)}
+              className={`px-6 py-2 rounded-full text-xs font-black uppercase tracking-widest transition-all ${
+                view === item.id ? 'bg-slate-900 text-white shadow-xl' : 'text-slate-400 hover:bg-slate-100'
+              }`}
+            >
+              {item.label}
+            </button>
+          ))}
+          <button 
+            onClick={() => setView('SCAN')}
+            className="px-6 py-2 bg-emerald-600 text-white rounded-full text-xs font-black uppercase tracking-widest shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all"
+          >
+            📸 Scan Food
+          </button>
         </div>
       </header>
 
-      <main className="flex-1 px-6 pt-2 pb-32">
-        {view === 'FLOOR' && <TheFloor />}
-        {view === 'HIERARCHY' && <TheHierarchy profile={profile} />}
-        {view === 'GRIND' && <TheGrind onXP={(xp) => setProfile(p => p ? {...p, points: p.points + xp, aura: p.aura + (xp/10)} : p)} />}
-        {view === 'PROFILE' && <ProfilePage profile={profile} />}
-        {view === 'CHAT' && <Messaging />}
+      <main className="relative z-10 px-6 max-w-7xl mx-auto py-10 transition-all">
+        {view === 'DASHBOARD' && <Dashboard profile={profile} savedSwaps={savedSwaps} onNavigate={setView} />}
+        {view === 'LAB' && <Lab profile={profile} onSaveSwap={handleSaveSwap} />}
+        {view === 'PANTRY' && <Pantry swaps={savedSwaps} onRemove={handleRemoveSwap} />}
+        {view === 'PROFILE' && <ProfileSettings profile={profile} onUpdate={updateProfile} />}
+        {view === 'SCAN' && <CameraScanner onCapture={handleVisionCapture} onClose={() => setView('DASHBOARD')} isLoading={isScanning} />}
       </main>
 
-      {/* RepBot Toggle (Minimalist FAB) */}
-      <button 
-        onClick={() => setIsBotOpen(true)}
-        className="fixed bottom-28 right-8 w-14 h-14 bg-black rounded-2xl flex items-center justify-center shadow-2xl hover:scale-105 active:scale-95 transition-all z-50"
-      >
-        <span className="text-xl">✨</span>
-      </button>
-
-      <RepBot isOpen={isBotOpen} onClose={() => setIsBotOpen(false)} profile={profile} />
-
-      {/* Dock Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 z-50 nav-blur px-8 pt-4 pb-8 flex justify-between items-center max-w-md mx-auto">
-        <NavBtn active={view === 'FLOOR'} onClick={() => setView('FLOOR')} icon={<HomeIcon />} label="Floor" />
-        <NavBtn active={view === 'HIERARCHY'} onClick={() => setView('HIERARCHY')} icon={<RankIcon />} label="Rank" />
-        <NavBtn active={view === 'GRIND'} onClick={() => setView('GRIND')} icon={<GrindIcon />} label="Grind" />
-        <NavBtn active={view === 'CHAT'} onClick={() => setView('CHAT')} icon={<ChatIcon />} label="Chat" />
-        <NavBtn active={view === 'PROFILE'} onClick={() => setView('PROFILE')} icon={<UserIcon />} label="Me" />
+      <nav className="fixed bottom-6 left-6 right-6 md:hidden z-50">
+        <div className="bg-slate-900/95 backdrop-blur-2xl border border-white/10 rounded-[2.5rem] p-3 shadow-2xl flex justify-around items-center">
+          {navItems.map(item => (
+            <button
+              key={item.id}
+              onClick={() => setView(item.id as View)}
+              className={`flex flex-col items-center gap-1 w-16 py-2 transition-all rounded-2xl ${
+                view === item.id ? 'bg-emerald-500 text-white shadow-lg scale-110' : 'text-slate-500'
+              }`}
+            >
+              <span className="text-xl">{item.icon}</span>
+              <span className="text-[8px] font-black uppercase tracking-tighter">{item.label}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setView('SCAN')}
+            className={`flex flex-col items-center gap-1 w-16 py-2 transition-all ${view === 'SCAN' ? 'text-emerald-400' : 'text-slate-500 opacity-60'}`}
+          >
+            <span className="text-xl">📸</span>
+            <span className="text-[8px] font-black uppercase tracking-tighter">Scan</span>
+          </button>
+        </div>
       </nav>
+
+      <footer className="relative z-10 mt-20 pb-10 text-center opacity-30">
+        <p className="text-[10px] font-black uppercase tracking-[0.4em]">Agentic Intelligence v2.1 • Pro Edition • Data Synced</p>
+      </footer>
     </div>
   );
 };
 
-const NavBtn = ({ active, onClick, icon, label }: any) => (
-  <button 
-    onClick={onClick}
-    className={`flex flex-col items-center gap-1 transition-all ${active ? 'text-black scale-110' : 'text-slate-300'}`}
-  >
-    <div className="w-6 h-6 flex items-center justify-center">
-      {React.cloneElement(icon, { color: 'currentColor' })}
-    </div>
-    <span className="text-[9px] font-black uppercase tracking-widest">{label}</span>
-  </button>
-);
-
-const HomeIcon = ({ color = 'currentColor' }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-);
-const RankIcon = ({ color = 'currentColor' }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22"/><path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2Z"/></svg>
-);
-const GrindIcon = ({ color = 'currentColor' }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M3.34 19a10 10 0 1 1 17.32 0"/><path d="m12 14 4-4"/></svg>
-);
-const ChatIcon = ({ color = 'currentColor' }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="m3 21 1.9-5.7a8.5 8.5 0 1 1 3.8 3.8z"/></svg>
-);
-const UserIcon = ({ color = 'currentColor' }) => (
-  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-);
-
 /**
- * FireBoyIcon - Sleek flame design
+ * FireBoyIcon - Sleek flame design based on user input
  */
 export const FireBoyIcon = ({ size = 40, color = 'black' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill={color} xmlns="http://www.w3.org/2000/svg">

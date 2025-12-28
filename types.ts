@@ -1,99 +1,29 @@
 
 export enum HealthGoal {
-  BULK = 'Main Character Bulk',
-  SHRED = 'Elite Shred',
-  VIBE = 'Casual Health Vibe',
-  /* Support for NutriSwap constant categories */
-  LOWER_CARB = 'Lower Carb',
   LOWER_CALORIE = 'Lower Calorie',
-  HIGHER_PROTEIN = 'Higher Protein'
+  HIGHER_PROTEIN = 'Higher Protein',
+  LOWER_CARB = 'Lower Carb',
+  HEART_HEALTHY = 'Heart Healthy',
+  LOW_SODIUM = 'Low Sodium',
+  BUDGET_FRIENDLY = 'Budget Friendly'
 }
 
 export enum UserCategory {
   KID = 'Kid',
   ADULT = 'Adult',
-  SENIOR = 'Senior'
+  ELDERLY = 'Elderly'
 }
 
-export enum UserRank {
-  ROOKIE = 'Rookie',
-  ELITE = 'Elite',
-  LEGEND = 'Legendary Status'
-}
-
-export interface UserProfile {
-  username: string;
-  name: string;
-  age: number;
-  foodPrefs: string;
-  allergies: string[];
-  points: number;
-  aura: number;
-  streak: number;
-  rank: UserRank;
-  followers: number;
-  following: number;
-  bio: string;
-  isAuthenticated: boolean;
-  avatarUrl?: string;
-  posts: SocialPost[];
-  /* Added properties for health goals and category profiling */
-  goals: HealthGoal[];
-  category: UserCategory;
-  level: number;
-  email?: string;
-  password?: string;
-  phoneNumber?: string;
-  provider?: string;
-}
-
-export interface SocialPost {
-  id: string;
-  username: string;
-  content: string;
-  imageUrl?: string;
-  hypeCount?: number;
-  squadCount?: number;
-  timestamp: string;
-  type?: 'LOCK_IN' | 'MEAL' | 'W';
-  /* Community feature extensions */
-  userLevel?: number;
-  swap?: { from: string; to: string };
-  likes?: number;
-}
-
-export interface ChatMessage {
-  id?: string;
-  sender?: string;
-  text?: string;
-  timestamp?: string;
-  /* Agentic Chat extensions */
-  role?: 'user' | 'assistant';
-  content?: string;
-  swapResult?: SwapResult;
-}
-
-export interface Challenge {
-  id: string;
-  title: string;
-  xp: number;
-  participants: number;
-  emoji: string;
-  checkedIn: boolean;
-  /* Community challenge extensions */
-  description?: string;
-  reward: number;
-  daysTotal: number;
-  daysCompleted: number;
-  isActive: boolean;
-}
-
-/* New interfaces for nutrition tracking and AI results */
 export interface MacroData {
   calories: number;
   protein: number;
   carbs: number;
   fats: number;
+}
+
+export interface RecipeIngredient {
+  item: string;
+  amount: string;
 }
 
 export interface SwapResult {
@@ -102,27 +32,77 @@ export interface SwapResult {
   suggestedSwap: string;
   explanation: string;
   reasoning: string;
-  estimatedPrice: string;
+  goals: HealthGoal[];
+  category: UserCategory;
+  estimatedPrice?: string;
   macros: {
     original: MacroData;
     swap: MacroData;
   };
   recipe: {
-    ingredients: { item: string; amount: string }[];
+    ingredients: RecipeIngredient[];
     steps: string[];
     prepTime: string;
   };
-  goals: HealthGoal[];
+}
+
+export interface UserProfile {
+  name: string;
   category: UserCategory;
+  goals: HealthGoal[];
+  allergies: string[];
+  budgetLimit?: number;
+  points: number;
+  level: number;
+  streak: number;
+  lastCheckIn?: string;
+}
+
+export interface ChatMessage {
+  role: 'user' | 'assistant';
+  content: string;
+  isThinking?: boolean;
+  swapResult?: SwapResult;
+}
+
+export interface Challenge {
+  id: string;
+  title: string;
+  description: string;
+  reward: number;
+  daysTotal: number;
+  daysCompleted: number;
+  isActive: boolean;
+}
+
+/**
+ * Interface representing a community social feed post.
+ */
+export interface SocialPost {
+  id: string;
+  userName: string;
+  userLevel: number;
+  content: string;
+  swap?: {
+    from: string;
+    to: string;
+  };
+  likes: number;
+  timestamp: string;
 }
 
 export interface DictionaryItem {
   food: string;
-  swaps: Partial<Record<HealthGoal, { suggested: string; explanation: string }>>;
+  swaps: Partial<Record<HealthGoal, {
+    suggested: string;
+    explanation: string;
+  }>>;
 }
+
+export type ToastType = 'success' | 'error' | 'info' | 'xp';
 
 export interface ToastMessage {
   id: string;
   message: string;
-  type: 'success' | 'info' | 'xp' | 'error';
+  type: ToastType;
 }
