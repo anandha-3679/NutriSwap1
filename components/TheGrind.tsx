@@ -7,10 +7,11 @@ interface GrindProps {
 }
 
 const TheGrind: React.FC<GrindProps> = ({ onXP }) => {
+  // Fix: Added missing mandatory properties reward, daysTotal, daysCompleted, and isActive to satisfy the Challenge interface
   const [challenges, setChallenges] = useState<Challenge[]>([
-    { id: '1', title: '7-Day No Sugar', xp: 500, participants: 124, emoji: '🍭', checkedIn: false },
-    { id: '2', title: 'Daily 10k Steps', xp: 200, participants: 3500, emoji: '👟', checkedIn: true },
-    { id: '3', title: 'Morning Pump', xp: 300, participants: 82, emoji: '💪', checkedIn: false },
+    { id: '1', title: '7-Day No Sugar', xp: 500, participants: 124, emoji: '🍭', checkedIn: false, reward: 500, daysTotal: 7, daysCompleted: 0, isActive: true },
+    { id: '2', title: 'Daily 10k Steps', xp: 200, participants: 3500, emoji: '👟', checkedIn: true, reward: 200, daysTotal: 1, daysCompleted: 1, isActive: true },
+    { id: '3', title: 'Morning Pump', xp: 300, participants: 82, emoji: '💪', checkedIn: false, reward: 300, daysTotal: 1, daysCompleted: 0, isActive: true },
   ]);
 
   const handleCheckIn = (id: string) => {
