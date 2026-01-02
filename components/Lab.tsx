@@ -7,9 +7,10 @@ import MacroVisualizer from './MacroVisualizer';
 interface LabProps {
   profile: UserProfile;
   onSaveSwap: (swap: SwapResult) => void;
+  onOpenScanner: () => void;
 }
 
-const Lab: React.FC<LabProps> = ({ profile, onSaveSwap }) => {
+const Lab: React.FC<LabProps> = ({ profile, onSaveSwap, onOpenScanner }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     { role: 'assistant', content: `Hello ${profile.name}! I'm your NutriSwap Agent. Tell me what you're craving or what food you want to replace, and I'll find the perfect match for your ${profile.goals[0].toLowerCase()} goal.` }
   ]);
@@ -105,13 +106,21 @@ const Lab: React.FC<LabProps> = ({ profile, onSaveSwap }) => {
         )}
       </div>
 
-      <form onSubmit={handleSend} className="p-4 bg-white/50 backdrop-blur-xl border-t border-white/20">
-        <div className="relative group">
+      <div className="p-4 bg-white/50 backdrop-blur-xl border-t border-white/20 flex gap-3">
+        <button
+          onClick={onOpenScanner}
+          className="w-16 bg-white border-2 border-slate-100 rounded-full flex items-center justify-center hover:bg-slate-50 transition-all shadow-sm active:scale-95 text-slate-700"
+          title="Scan Food"
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        </button>
+        
+        <form onSubmit={handleSend} className="flex-1 relative group">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="e.g., 'I want a high protein swap for Pizza on a $10 budget'"
+            placeholder="e.g., 'A high protein swap for Pizza...'"
             className="w-full bg-white border-2 border-slate-100 rounded-full py-5 px-8 pr-16 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition-all text-lg"
           />
           <button
@@ -123,8 +132,8 @@ const Lab: React.FC<LabProps> = ({ profile, onSaveSwap }) => {
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="3" d="M12 19l9-7-9-7V19z" />
             </svg>
           </button>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 };

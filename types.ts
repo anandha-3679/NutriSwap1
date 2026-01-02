@@ -48,14 +48,17 @@ export interface SwapResult {
 
 export interface UserProfile {
   name: string;
+  age: number;
+  gender: string;
+  avatar: string;
   category: UserCategory;
   goals: HealthGoal[];
   allergies: string[];
-  budgetLimit?: number;
   points: number;
   level: number;
   streak: number;
   lastCheckIn?: string;
+  isNewUser?: boolean;
 }
 
 export interface ChatMessage {
@@ -65,18 +68,51 @@ export interface ChatMessage {
   swapResult?: SwapResult;
 }
 
+/**
+ * Updated Challenge interface to include both basic and community tracking fields.
+ */
 export interface Challenge {
   id: string;
   title: string;
   description: string;
   reward: number;
-  daysTotal: number;
-  daysCompleted: number;
-  isActive: boolean;
+  icon?: string;
+  isJoined?: boolean;
+  daysTotal?: number;
+  daysCompleted?: number;
+  isActive?: boolean;
+}
+
+export interface LeaderboardEntry {
+  name: string;
+  avatar: string;
+  xp: number;
+  isMe?: boolean;
+}
+
+export type ToastType = 'success' | 'error' | 'info' | 'xp';
+
+export interface ToastMessage {
+  id: string;
+  message: string;
+  type: ToastType;
 }
 
 /**
- * Interface representing a community social feed post.
+ * Added DictionaryItem to resolve import error in constants.ts
+ */
+export interface DictionaryItem {
+  food: string;
+  swaps: {
+    [key in HealthGoal]?: {
+      suggested: string;
+      explanation: string;
+    };
+  };
+}
+
+/**
+ * Added SocialPost to resolve import error in components/Community.tsx
  */
 export interface SocialPost {
   id: string;
@@ -89,20 +125,4 @@ export interface SocialPost {
   };
   likes: number;
   timestamp: string;
-}
-
-export interface DictionaryItem {
-  food: string;
-  swaps: Partial<Record<HealthGoal, {
-    suggested: string;
-    explanation: string;
-  }>>;
-}
-
-export type ToastType = 'success' | 'error' | 'info' | 'xp';
-
-export interface ToastMessage {
-  id: string;
-  message: string;
-  type: ToastType;
 }
